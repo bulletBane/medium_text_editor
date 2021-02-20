@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:keyboard_visibility/keyboard_visibility.dart';
 
 import 'state_management.dart';
 import 'text_field.dart';
@@ -13,6 +14,25 @@ class TextEditor extends StatefulWidget {
 }
 
 class _TextEditorState extends State<TextEditor> {
+  bool showToolbar = false;
+  @override
+  void initState() {
+    super.initState();
+    KeyboardVisibilityNotification().addNewListener(
+      onChange: (isVisible) {
+        setState(() {
+          showToolbar = isVisible;
+        });
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    KeyboardVisibilityNotification().dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<EditorProvider>(
@@ -23,30 +43,44 @@ class _TextEditorState extends State<TextEditor> {
                 body: Stack(
               children: <Widget>[
                 Positioned(
-                  top: 16,
-                  left: 0,
-                  right: 0,
-                  bottom: 56,
-                  child: Consumer<EditorProvider>(builder: (context, state, _) {
-                    return SmartTextField(type: state.selectedType);
-                  }),
-                ),
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Selector<EditorProvider, SmartTextType>(
-                    selector: (buildContext, state) => state.selectedType,
-                    builder: (context, selectedType, _) {
-                      return Toolbar(
-                        selectedType: selectedType,
-                        onSelected:
-                            Provider.of<EditorProvider>(context, listen: false)
-                                .setType,
-                      );
-                    },
-                  ),
-                )
+                    top: 16,
+                    left: 0,
+                    right: 0,
+                    bottom: 56,
+                    child:
+                        Consumer<EditorProvider>(builder: (context, state, _) {
+                      return ListView.builder(
+                          itemCount: state.length,
+                          itemBuilder: (context, index) {
+                            return Focus(
+                                onFocusChange: (hasFocus) {
+                                  if (hasFocus)
+                                    state.setFocus(state.typeAt(index));
+                                },
+                                child: SmartTextField(
+                                  type: state.typeAt(index),
+                                  controller: state.textAt(index),
+                                  focusNode: state.nodeAt(index),
+                                ));
+                          });
+                    })),
+                if (showToolbar)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Selector<EditorProvider, SmartTextType>(
+                      selector: (buildContext, state) => state.selectedType,
+                      builder: (context, selectedType, _) {
+                        return Toolbar(
+                          selectedType: selectedType,
+                          onSelected: Provider.of<EditorProvider>(context,
+                                  listen: false)
+                              .setType,
+                        );
+                      },
+                    ),
+                  )
               ],
             )),
           );

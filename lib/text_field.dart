@@ -44,6 +44,7 @@ extension SmartTextStyle on SmartTextType {
         return '\u2022 ';
         break;
       default:
+        return null;
     }
   }
 }
